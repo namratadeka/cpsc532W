@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 ##Q3
 
 
@@ -40,32 +41,48 @@ for c in range(2):
                 
 ## condition and marginalize:
 #TODO
-p_C_given_W = np.zeros((2))
+p_C_given_W = np.zeros((2, 2))
 
-p_c_w = 0
-for r in range(2):
-    for s in range(2):
-        p_c_w += p[1, s, r, 1]
-
-p_w = 0
+p_C_W = np.zeros((2, 2))
 for c in range(2):
-    for r in range(2):
-        for s in range(2):
-            p_w += p[c, s, r, 1]
+    for w in range(2):
+        for r in range(2):
+            for s in range(2):
+                p_C_W[c, w] += p[c, s, r, w]
+p_C_W /= p_C_W.sum()
 
-p_C_given_W[1] = p_c_w / p_w
-p_C_given_W[0] = 1 - p_C_given_W[1]
-print('There is a {:.2f}% chance it is cloudy given the grass is wet'.format(p_C_given_W[1]*100))
+p_W = np.zeros((2))
+for w in range(2):
+    for c in range(2):
+        for r in range(2):
+            for s in range(2):
+                p_W[w] += p[c, s, r, w]
+p_W /= p_W.sum()
 
+for c in range(2):
+    for w in range(2):
+        p_C_given_W[c, w] = p_C_W[c, w] / p_W[w]
+print('There is a {:.2f}% chance it is cloudy given the grass is wet'.format(p_C_given_W[1, 1]*100))
 
 ##2. ancestral sampling and rejection:
+def sample_from_dist(dist):
+    flat = dist.flatten()
+    idx = np.random.choice(a=flat.size, p=flat)
+    return np.unravel_index(idx, dist.shape)
+
 num_samples = 10000
 samples = np.zeros(num_samples)
 rejections = 0
 i = 0
 while i < num_samples:
     #TODO
-    pass
+    c, w = sample_from_dist(p_C_W)
+    u = np.random.uniform(low=0, high=p_C_W[c, w])
+    if u <= p_C_W[c, w] * int(w==1):
+        samples[i] = 1
+    else:
+        rejections += 1
+    i+=1
 
 print('The chance of it being cloudy given the grass is wet is {:.2f}%'.format(samples.mean()*100))
 print('{:.2f}% of the total samples were rejected'.format(100*rejections/(samples.shape[0]+rejections)))
