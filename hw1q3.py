@@ -122,5 +122,20 @@ state = np.zeros(4,dtype='int')
 #c,s,r,w, set w = True
 
 #TODO
+# set w = True
+w = 1
+# begin loop
+i = 0
+while i < num_samples:
+
+    r = np.random.choice(a=p_R_given_C_S_W[c, s, :, w].size, p=p_R_given_C_S_W[c, s, :, w])
+
+    s = np.random.choice(a=p_S_given_C_R_W[c, :, r, w].size, p=p_S_given_C_R_W[c, :, r, w])
+
+    c = np.random.choice(a=p_C_given_S_R[:, s, r].size, p=p_C_given_S_R[:, s, r])
+    if c == 1:
+        samples[i] = 1
+
+    i += 1
 
 print('The chance of it being cloudy given the grass is wet is {:.2f}%'.format(samples.mean()*100))
