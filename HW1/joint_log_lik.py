@@ -14,8 +14,6 @@ def joint_log_lik(doc_counts, topic_counts, alpha, gamma):
         ll: the joint log likelihood of the model
     """
     #TODO
-    doc_counts_norm = doc_counts / np.expand_dims(doc_counts.sum(axis=1), 1)
-    topic_counts_norm = topic_counts / np.expand_dims(topic_counts.sum(axis=1), 1)
 
     jll = 0
     for k in range(topic_counts.shape[0]):
