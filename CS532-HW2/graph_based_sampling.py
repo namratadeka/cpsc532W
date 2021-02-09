@@ -9,7 +9,18 @@ from tests import is_tol, run_prob_test,load_truth
 # Put all function mappings from the deterministic language environment to your
 # Python evaluation context here:
 env = {'normal': dist.Normal,
-       'sqrt': torch.sqrt}
+       'sqrt': torch.sqrt,
+       '+': torch.add,
+       '-': torch.subtract,
+       '*': torch.multiply,
+       '/': torch.divide,
+       'vector': funcprimitives.vector,
+       'first': funcprimitives.first,
+       'last': funcprimitives.last,
+       'append': funcprimitives.append,
+       'get': funcprimitives.get,
+       'hash-map': funcprimitives.hash_map,
+       'put': funcprimitives.put}
 
 
 def deterministic_eval(exp):
@@ -52,6 +63,7 @@ def run_deterministic_tests():
         graph = daphne(['graph','-i','../CS532-HW2/programs/tests/deterministic/test_{}.daphne'.format(i)])
         truth = load_truth('programs/tests/deterministic/test_{}.truth'.format(i))
         ret = deterministic_eval(graph[-1])
+        print(graph)
         try:
             assert(is_tol(ret, truth))
         except AssertionError:
@@ -90,7 +102,7 @@ if __name__ == '__main__':
     
 
     run_deterministic_tests()
-    run_probabilistic_tests()
+    # run_probabilistic_tests()
 
 
 

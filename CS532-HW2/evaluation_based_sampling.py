@@ -1,5 +1,20 @@
+import torch
 from daphne import daphne
 from tests import is_tol, run_prob_test,load_truth
+from primitives import funcprimitives #TODO
+from graph_based_sampling import env
+
+def evaluate(exp):
+    "Evaluation function for the deterministic target language of the graph based representation."
+    if type(exp) is list:
+        op = exp[0]
+        args = exp[1:]
+        return env[op](*map(evaluate, args))
+    elif type(exp) is int or type(exp) is float:
+        # We use torch for all numerical objects in our evaluator
+        return torch.tensor(float(exp))
+    else:
+        raise("Expression type unknown.", exp)
 
         
 def evaluate_program(ast):
@@ -8,7 +23,11 @@ def evaluate_program(ast):
         ast: json FOPPL program
     Returns: sample from the prior of ast
     """
-    return None
+    # TODO
+    print(ast[0])
+    sig = None
+    ret = evaluate(ast[0])
+    return ret, sig
 
 
 def get_stream(ast):
