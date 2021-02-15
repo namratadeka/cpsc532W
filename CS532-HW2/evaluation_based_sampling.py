@@ -1,15 +1,49 @@
 import torch
+from torch import tensor
 from daphne import daphne
 from tests import is_tol, run_prob_test,load_truth
 from primitives import funcprimitives #TODO
-from graph_based_sampling import env
+from ops import env
+
+
+lv = dict()
+fn = dict()
+
+def evaluate_defn(exp):
+    fn[exp[0]] = {
+                  'args': exp[1],
+                  'body': exp[2]
+                 }
+
+def evaluate_let(exp):
+    bindings = exp[0]
+    ret_exp = exp[1]
+    lv[bindings[0]] = bindings[1]
+    return evaluate(ret_exp)
+
 
 def evaluate(exp):
     "Evaluation function for the deterministic target language of the graph based representation."
     if type(exp) is list:
         op = exp[0]
         args = exp[1:]
+
+        if op == 'let':
+            return evaluate_let(args)
+
+        if op == 'defn':
+            return evaluate_defn(args)
+
+        if op in fn:
+            for i in range(len(fn[op]['args'])):
+                lv[fn[op]['args'][i]] = args[i]
+            return evaluate(fn[op]['body'])
+
         return env[op](*map(evaluate, args))
+    elif type(exp) is str:
+        if exp in lv:
+            return evaluate(lv[exp])
+        return exp
     elif type(exp) is int or type(exp) is float:
         # We use torch for all numerical objects in our evaluator
         return torch.tensor(float(exp))
@@ -24,10 +58,9 @@ def evaluate_program(ast):
     Returns: sample from the prior of ast
     """
     # TODO
-    print(ast[0])
-    sig = None
-    ret = evaluate(ast[0])
-    return ret, sig
+    for i in range(len(ast)):
+        ret = evaluate(ast[i])
+    return ret
 
 
 def get_stream(ast):
@@ -43,7 +76,8 @@ def run_deterministic_tests():
         #note: this path should be with respect to the daphne path!
         ast = daphne(['desugar', '-i', '../CS532-HW2/programs/tests/deterministic/test_{}.daphne'.format(i)])
         truth = load_truth('programs/tests/deterministic/test_{}.truth'.format(i))
-        ret, sig = evaluate_program(ast)
+        print(ast)
+        ret = evaluate_program(ast)
         try:
             assert(is_tol(ret, truth))
         except AssertionError:
@@ -56,21 +90,22 @@ def run_deterministic_tests():
 
 
 def run_probabilistic_tests():
-    
+
     num_samples=1e4
     max_p_value = 1e-4
     
     for i in range(1,7):
-        #note: this path should be with respect to the daphne path!        
+        #note: this path should be with respect to the daphne path!       
         ast = daphne(['desugar', '-i', '../CS532-HW2/programs/tests/probabilistic/test_{}.daphne'.format(i)])
         truth = load_truth('programs/tests/probabilistic/test_{}.truth'.format(i))
-        
+        print(ast)
         stream = get_stream(ast)
         
         p_val = run_prob_test(stream, truth, num_samples)
         
         print('p value', p_val)
         assert(p_val > max_p_value)
+        print('Test passed')
     
     print('All probabilistic tests passed')    
 

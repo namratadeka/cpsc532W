@@ -46,5 +46,11 @@ class FuncPrimitives(object):
 			values.append(args[i+1])
 		return dict(zip(keys, values))
 
+	def if_block(self, *args):
+		predicate = args[0]
+		if predicate:
+			return args[1]
+		return args[2]
+
 
 funcprimitives = FuncPrimitives()
