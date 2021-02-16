@@ -2,25 +2,12 @@ import torch
 import torch.distributions as dist
 
 from daphne import daphne
-
-from primitives import funcprimitives #TODO
 from tests import is_tol, run_prob_test,load_truth
 
 # Put all function mappings from the deterministic language environment to your
 # Python evaluation context here:
-env = {'normal': dist.Normal,
-       'sqrt': torch.sqrt,
-       '+': torch.add,
-       '-': torch.subtract,
-       '*': torch.multiply,
-       '/': torch.divide,
-       'vector': funcprimitives.vector,
-       'first': funcprimitives.first,
-       'last': funcprimitives.last,
-       'append': funcprimitives.append,
-       'get': funcprimitives.get,
-       'hash-map': funcprimitives.hash_map,
-       'put': funcprimitives.put}
+from ops import env
+from evaluation_based_sampling import evaluate
 
 
 def deterministic_eval(exp):
@@ -39,7 +26,15 @@ def deterministic_eval(exp):
 def sample_from_joint(graph):
     "This function does ancestral sampling starting from the prior."
     # TODO insert your code here
-    return torch.tensor([0.0, 0.0, 0.0])
+    procedures = graph[0]
+    verts = graph[1]['V']
+    arcs = graph[1]['A']
+    links = graph[1]['P']
+    observed = graph[1]['Y']
+    ret_exp = graph[2]
+    
+    ret = evaluate(ret_exp, lv=links)
+    return ret
 
 
 def get_stream(graph):
@@ -80,7 +75,7 @@ def run_probabilistic_tests():
     #TODO: 
     num_samples=1e4
     max_p_value = 1e-4
-    
+
     for i in range(1,7):
         #note: this path should be with respect to the daphne path!        
         graph = daphne(['graph', '-i', '../CS532-HW2/programs/tests/probabilistic/test_{}.daphne'.format(i)])
@@ -102,14 +97,14 @@ if __name__ == '__main__':
     
 
     run_deterministic_tests()
-    # run_probabilistic_tests()
+    run_probabilistic_tests()
 
 
 
 
-    for i in range(1,5):
-        graph = daphne(['graph','-i','../CS532-HW2/programs/{}.daphne'.format(i)])
-        print('\n\n\nSample of prior of program {}:'.format(i))
-        print(sample_from_joint(graph))    
+    # for i in range(1,5):
+    #     graph = daphne(['graph','-i','../CS532-HW2/programs/{}.daphne'.format(i)])
+    #     print('\n\n\nSample of prior of program {}:'.format(i))
+    #     print(sample_from_joint(graph))    
 
     
