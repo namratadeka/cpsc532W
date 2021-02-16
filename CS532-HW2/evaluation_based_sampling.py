@@ -7,7 +7,6 @@ from ops import env
 import functools
 
 
-lv = dict()
 fn = dict()
 sigma = dict()
 
@@ -18,7 +17,7 @@ def evaluate_defn(exp):
                   'body': exp[2]
                  }
 
-def evaluate_let(exp):
+def evaluate_let(exp, lv={}):
     bindings = exp[0]
     ret_exp = exp[1]
     lv[bindings[0]] = bindings[1]
@@ -31,18 +30,21 @@ def evaluate(exp, lv={}):
         args = exp[1:]
 
         if op == 'let':
-            return evaluate_let(args)
+            return evaluate_let(args, lv)
 
         if op == 'defn':
             return evaluate_defn(args)
 
         if op in fn:
             for i, key in enumerate(fn[op]['args']):
-                fn[op]['args'][key] = args[i]
-            return evaluate(fn[op]['body'], lv=fn[op]['args'])
+                fn[op]['args'][key] = evaluate(args[i],lv)
+            return evaluate(fn[op]['body'], lv=fn[op]['args'].copy())
 
-        evaluate_bind = functools.partial(evaluate, lv=lv)
-        return env[op](*map(evaluate_bind, args))
+        if op in env:
+            evaluate_bind = functools.partial(evaluate, lv=lv)
+            return env[op](*map(evaluate_bind, args))
+
+        return exp
 
     elif type(exp) is str:
         if exp in lv:
@@ -52,6 +54,9 @@ def evaluate(exp, lv={}):
     elif type(exp) is int or type(exp) is float:
         # We use torch for all numerical objects in our evaluator
         return torch.tensor(float(exp))
+
+    elif type(exp) is torch.Tensor:
+        return exp
 
     else:
         raise("Expression type unknown.", exp)
@@ -129,6 +134,5 @@ if __name__ == '__main__':
         ret = evaluate_program(ast)
         print(ret)
 
-        lv.clear()
         fn.clear()
         sigma.clear()

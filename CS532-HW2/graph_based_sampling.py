@@ -32,7 +32,7 @@ def sample_from_joint(graph):
     links = graph[1]['P']
     observed = graph[1]['Y']
     ret_exp = graph[2]
-    
+
     ret = evaluate(ret_exp, lv=links)
     return ret
 
@@ -105,6 +105,8 @@ if __name__ == '__main__':
     # for i in range(1,5):
     #     graph = daphne(['graph','-i','../CS532-HW2/programs/{}.daphne'.format(i)])
     #     print('\n\n\nSample of prior of program {}:'.format(i))
-    #     print(sample_from_joint(graph))    
+    #     import pdb; pdb.set_trace()
+    #     ret = sample_from_joint(graph)
+    #     print(ret)    
 
     
