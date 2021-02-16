@@ -56,5 +56,13 @@ class FuncPrimitives(object):
 			return args[1]
 		return args[2]
 
+	def transpose(self, arg):
+		return torch.transpose(arg, 1, 0)
+
+	def repmat(self, *args):
+		x = args[0]
+		dims = args[1:]
+		return x.repeat(*dims)
+
 
 funcprimitives = FuncPrimitives()
