@@ -4,14 +4,17 @@ from daphne import daphne
 from tests import is_tol, run_prob_test,load_truth
 from primitives import funcprimitives #TODO
 from ops import env
+import functools
 
 
 lv = dict()
 fn = dict()
+sigma = dict()
 
 def evaluate_defn(exp):
+    arg_values = [None for x in exp[1]]
     fn[exp[0]] = {
-                  'args': exp[1],
+                  'args': dict(zip(exp[1], arg_values)),
                   'body': exp[2]
                  }
 
@@ -19,10 +22,9 @@ def evaluate_let(exp):
     bindings = exp[0]
     ret_exp = exp[1]
     lv[bindings[0]] = bindings[1]
-    return evaluate(ret_exp)
+    return evaluate(ret_exp, lv=lv)
 
-
-def evaluate(exp):
+def evaluate(exp, lv={}):
     "Evaluation function for the deterministic target language of the graph based representation."
     if type(exp) is list:
         op = exp[0]
@@ -35,18 +37,22 @@ def evaluate(exp):
             return evaluate_defn(args)
 
         if op in fn:
-            for i in range(len(fn[op]['args'])):
-                lv[fn[op]['args'][i]] = args[i]
-            return evaluate(fn[op]['body'])
+            for i, key in enumerate(fn[op]['args']):
+                fn[op]['args'][key] = args[i]
+            return evaluate(fn[op]['body'], lv=fn[op]['args'])
 
-        return env[op](*map(evaluate, args))
+        evaluate_bind = functools.partial(evaluate, lv=lv)
+        return env[op](*map(evaluate_bind, args))
+
     elif type(exp) is str:
         if exp in lv:
-            return evaluate(lv[exp])
+            return evaluate(lv[exp], lv)
         return exp
+
     elif type(exp) is int or type(exp) is float:
         # We use torch for all numerical objects in our evaluator
         return torch.tensor(float(exp))
+
     else:
         raise("Expression type unknown.", exp)
 
@@ -120,4 +126,9 @@ if __name__ == '__main__':
     for i in range(1,5):
         ast = daphne(['desugar', '-i', '../CS532-HW2/programs/{}.daphne'.format(i)])
         print('\n\n\nSample of prior of program {}:'.format(i))
-        print(evaluate_program(ast)[0])
+        ret = evaluate_program(ast)
+        print(ret)
+
+        lv.clear()
+        fn.clear()
+        sigma.clear()

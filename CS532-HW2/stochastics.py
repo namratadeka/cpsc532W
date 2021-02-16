@@ -20,5 +20,8 @@ class FuncStochastics(object):
 	def uniform(self, *args):
 		return dist.uniform.Uniform(low=args[0], high=args[1])
 
+	def discrete(self, *args):
+		return dist.categorical.Categorical(probs=args[0])
+
 
 funcstochastics = FuncStochastics()

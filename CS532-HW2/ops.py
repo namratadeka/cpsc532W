@@ -26,6 +26,7 @@ env = {
 
         # stochastic functions
         'sample': funcstochastics.sample,
+        'discrete': funcstochastics.discrete,
         'uniform': funcstochastics.uniform,
         'normal': funcstochastics.normal,
         'beta': funcstochastics.beta,

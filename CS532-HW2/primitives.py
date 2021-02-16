@@ -6,7 +6,11 @@ class FuncPrimitives(object):
 		v = list()
 		for arg in args:
 			v.append(arg)
-		return torch.Tensor(v)
+
+		try:
+			return torch.Tensor(v)
+		except:
+			return v
 
 	def first(self, tensor):
 		return tensor[0]
@@ -23,7 +27,7 @@ class FuncPrimitives(object):
 		iterator = args[0]
 		key = args[1].item()
 
-		if type(iterator) == torch.Tensor:
+		if type(iterator) in [torch.Tensor, list]:
 			key = int(key)
 		return iterator[key]
 
