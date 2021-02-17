@@ -28,6 +28,10 @@ env = {
         'get': funcprimitives.get,
         'hash-map': funcprimitives.hash_map,
         'put': funcprimitives.put,
+        'rest': funcprimitives.rest,
+        'nth': funcprimitives.nth,
+        'cons': funcprimitives.cons,
+        'conj': funcprimitives.conj,
 
         # stochastic functions
         'sample': funcstochastics.sample,

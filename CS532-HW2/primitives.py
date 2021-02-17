@@ -18,6 +18,26 @@ class FuncPrimitives(object):
 	def last(self, tensor):
 		return tensor[-1]
 
+	def rest(self, tensor):
+		return tensor[1:]
+
+	def nth(self, *args):
+		vector = args[0]
+		idx = args[1]
+		return vector[idx]
+
+	def cons(self, *args):
+		c = args[0]
+		vector = args[1]
+		return torch.cat((torch.tensor[c], torch.tensor(vector)))
+
+	def conj(self, *args):
+		coll = args[0]
+		xs = args[1:]
+		for x in xs:
+			coll = self.append(coll, x)
+		return coll
+
 	def append(self, *args):
 		vector = args[0]
 		c = args[1]
