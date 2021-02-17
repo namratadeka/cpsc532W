@@ -5,7 +5,10 @@ from tests import is_tol, run_prob_test,load_truth
 from primitives import funcprimitives #TODO
 from ops import env
 import functools
-
+import matplotlib.pyplot as plt
+from tqdm import tqdm
+import numpy as np
+from seaborn import heatmap
 
 fn = dict()
 sigma = dict()
@@ -130,9 +133,12 @@ if __name__ == '__main__':
 
     for i in range(1,5):
         ast = daphne(['desugar', '-i', '../CS532-HW2/programs/{}.daphne'.format(i)])
-        print('\n\n\nSample of prior of program {}:'.format(i))
-        ret = evaluate_program(ast)
-        print(ret)
+        print('\n\n\nSamples of prior of program {}:'.format(i))
+        samples = list()
+        for j in tqdm(range(1000)):
+            samples.append(evaluate_program(ast))
+
+        print(samples)
 
         fn.clear()
         sigma.clear()
