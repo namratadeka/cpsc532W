@@ -14,3 +14,9 @@ def histogram(samples, weights=None, name=None):
 		plt.hist(samples[:, i], weights=weights, bins=100)
 		plt.title("{}, dimension: {}".format(name, i))
 		plt.show()
+
+	for i in range(d):
+		plt.plot(list(range(n)), samples[:,i])
+		plt.xlabel("#sample")
+		plt.title("Sample Trace for {}, dimension: {}".format(name, i))
+		plt.show()
