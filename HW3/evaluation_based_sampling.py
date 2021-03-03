@@ -167,13 +167,14 @@ def hw_3():
         for j in range(n):
             sample, sigma = evaluate_program(ast)
             samples.append(sample)
-            weights.append(sigma['logW'])
-            running_mean += sample * sigma['logW'].item()
+            weights.append(torch.exp(sigma['logW']))
+            running_mean += sample * torch.exp(sigma['logW']).item()
 
         samples = torch.stack(samples).float()
         weights = torch.stack(weights)
         mean = running_mean / weights.sum()
-        var = ((samples - mean)**2).sum(dim=0) / (n-1)
+        diff = (samples.reshape(n,-1) - mean)**2
+        var = torch.matmul(weights.reshape(-1,n), diff) / weights.sum()
         print("Posterior mean for program-{}: {}".format(i, mean))
         print("Posterior variance for program-{}: {}".format(i, var))
         
