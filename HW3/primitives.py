@@ -92,6 +92,8 @@ def exponential(lamb):
     return torch.distributions.Exponential(lamb)
 def discrete(vector):
     return torch.distributions.Categorical(vector)
+def dirac(x):
+    return torch.distributions.Normal(x, 1e-10)
 def transpose(tensor):
     return tensor.T
 def repmat(tensor, size1, size2):
@@ -135,6 +137,7 @@ PRIMITIVES = {
     "dirichlet": dirichlet,
     "exponential": exponential,
     "discrete": discrete,
+    "dirac": dirac,
     "mat-transpose": transpose,
     "mat-add": add,
     "mat-tanh": tanh,

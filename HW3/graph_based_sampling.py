@@ -217,7 +217,7 @@ def gibbs_step(graph, trace):
 
 
 def hw_3_gibbs():
-    for i in range(1,5):
+    for i in range(1,6):
         graph = daphne(['graph', '-i', '../HW3/hw3-programs/{}.daphne'.format(i)])
         samples, n = [], 10000
         _, _, trace = sample_from_joint(graph)
