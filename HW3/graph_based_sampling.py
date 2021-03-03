@@ -2,12 +2,14 @@ import torch
 import torch.distributions as dist
 import matplotlib.pyplot as plt
 import seaborn as sns
+from tqdm import tqdm
 
 from daphne import daphne
 import numpy as np
 
 from primitives import PRIMITIVES
 from tests import is_tol, run_prob_test,load_truth
+from evaluation_based_sampling import evaluate_program
 
 # Put all function mappings from the deterministic language environment to your
 # Python evaluation context here:
@@ -21,12 +23,13 @@ def deterministic_eval(exp):
         op = exp[0]
         args = exp[1:]
         return env[op](*map(deterministic_eval, args))
-    elif type(exp) in [int, float]:
+    elif type(exp) in [int, float, bool]:
         # We use torch for all numerical objects in our evaluator
         return torch.Tensor([float(exp)]).squeeze()
     elif type(exp) is torch.Tensor:
         return exp
     else:
+        import pdb; pdb.set_trace()
         raise Exception("Expression type unknown.", exp)
 
 def topological_sort(nodes, edges):
@@ -65,7 +68,7 @@ def sample_from_joint(graph):
     nodes, edges, links, obs = model['V'], model['A'], model['P'], model['Y']
     sorted_nodes = topological_sort(nodes, edges)
 
-    sigma = {}
+    sigma = {'logW':0}
     trace = {}
     for node in sorted_nodes:
         keyword = links[node][0]
@@ -76,9 +79,13 @@ def sample_from_joint(graph):
             trace[node] = dist_obj.sample()
         elif keyword == "observe*":
             trace[node] = obs[node]
+            link_expr = links[node][1]
+            link_expr = plugin_parent_values(link_expr, trace)
+            dist_obj  = deterministic_eval(link_expr)
+            sigma['logW'] += dist_obj.log_prob(obs[node])
 
     expr = plugin_parent_values(expr, trace)
-    return deterministic_eval(expr), sigma
+    return deterministic_eval(expr), sigma, trace
 
 
 def get_stream(graph):
@@ -138,9 +145,7 @@ def print_tensor(tensor):
     print(tensor)
         
 
-if __name__ == '__main__':
-    
-
+def hw_2():
     run_deterministic_tests()
     run_probabilistic_tests()
 
@@ -165,3 +170,71 @@ if __name__ == '__main__':
         else:
             expectation = sum(samples)/n
             print_tensor(expectation)
+
+def accept(x, X_, X, edges, links, obs):
+    q = deterministic_eval(plugin_parent_values(links[x][1], {**X, **obs}))
+    q_ = deterministic_eval(plugin_parent_values(links[x][1], {**X_, **obs}))
+    log_alpha = q_.log_prob(X_[x]) - q.log_prob(X[x])
+    Vx = edges[x]
+    for v in Vx:
+        link_expr = plugin_parent_values(links[v][1], {**X_, **obs})
+        dist_obj = deterministic_eval(link_expr)
+        log_alpha += dist_obj.log_prob({**X_, **obs}[v])
+
+        link_expr = plugin_parent_values(links[v][1], {**X, **obs})
+        dist_obj = deterministic_eval(link_expr)
+        log_alpha -= dist_obj.log_prob({**X_, **obs}[v])
+
+    return torch.exp(log_alpha)
+
+
+def gibbs_step(graph, trace):
+    procs, model, expr = graph[0], graph[1], graph[2]
+    nodes, edges, links, obs = model['V'], model['A'], model['P'], model['Y']
+    sorted_nodes = topological_sort(nodes, edges)
+    
+    diff = list(sorted_nodes - obs.keys())
+    X = [node for node in sorted_nodes if node in diff]
+    X_dict = {}
+    for x in X:
+        X_dict[x] = trace[x]
+    X = X_dict
+
+    for x in X:
+        link_expr = plugin_parent_values(links[x][1], {**X, **obs})
+        q = deterministic_eval(link_expr)
+        X_ = X.copy()
+        X_[x] = q.sample()
+        alpha = accept(x, X_, X, edges, links, obs)
+        u = torch.distributions.Uniform(0,1).sample()
+        if (u < alpha).all():
+            X = X_
+
+    return_trace = {**X, **obs}
+    return_expr = plugin_parent_values(expr, return_trace)
+    return deterministic_eval(return_expr), return_trace
+
+
+def hw_3_gibbs():
+    for i in range(1,5):
+        graph = daphne(['graph', '-i', '../HW3/hw3-programs/{}.daphne'.format(i)])
+        samples, n = [], 10000
+        _, _, trace = sample_from_joint(graph)
+        for j in tqdm(range(n)):
+            sample, trace = gibbs_step(graph, trace)
+            samples.append(sample)
+
+        samples = torch.stack(samples).float()
+        mean = samples.mean(dim=0)
+        var = samples.var(dim=0)
+
+        print("Posterior mean for program-{}: {}".format(i, mean))
+        print("Posterior variance for program-{}: {}".format(i, var))
+
+
+
+if __name__ == '__main__':
+    # hw_2()
+    hw_3_gibbs()
+
+    
