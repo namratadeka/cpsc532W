@@ -6,6 +6,7 @@ import torch
 import numpy as np
 from primitives import PRIMITIVES
 from collections.abc import Iterable
+from plots import histogram
 
 
 def evaluate_program(ast):
@@ -177,6 +178,8 @@ def hw_3_IS():
         var = torch.matmul(weights.reshape(-1,n), diff) / weights.sum()
         print("Posterior mean for program-{}: {}".format(i, mean))
         print("Posterior variance for program-{}: {}".format(i, var))
+
+        histogram(samples, weights, "IS, Program-{}".format(i))
         
 if __name__ == '__main__':
     # hw_2()

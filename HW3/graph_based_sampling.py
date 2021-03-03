@@ -8,6 +8,7 @@ from copy import deepcopy
 from daphne import daphne
 import numpy as np
 
+from plots import histogram
 from primitives import PRIMITIVES
 from tests import is_tol, run_prob_test,load_truth
 from evaluation_based_sampling import evaluate_program
@@ -231,6 +232,8 @@ def hw_3_gibbs():
         print("Posterior mean for program-{}: {}".format(i, mean))
         print("Posterior variance for program-{}: {}".format(i, var))
 
+        histogram(samples, weights=None, name="MH-Gibbs, Program-{}".format(i))
+
 
 def tensor_dict_add(x, r):
     y = {}
@@ -320,6 +323,8 @@ def hw3_hmc():
 
         print("Posterior mean for program-{}: {}".format(i, mean))
         print("Posterior variance for program-{}: {}\n".format(i, var))
+
+        histogram(samples, weights=None, name="Hamiltonian Monte-Carlo, Program-{}".format(i))
 
 
 if __name__ == '__main__':
