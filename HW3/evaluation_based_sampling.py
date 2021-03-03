@@ -158,7 +158,7 @@ def hw_2():
             expectation = sum(samples)/n
             print_tensor(expectation)
 
-def hw_3():
+def hw_3_IS():
     for i in range(1, 5):
         ast = daphne(['desugar', '-i', '../HW3/hw3-programs/{}.daphne'.format(i)])
 
@@ -180,7 +180,7 @@ def hw_3():
         
 if __name__ == '__main__':
     # hw_2()
-    hw_3()
+    hw_3_IS()
     
 
 """

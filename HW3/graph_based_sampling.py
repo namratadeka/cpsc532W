@@ -3,6 +3,7 @@ import torch.distributions as dist
 import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
+from copy import deepcopy
 
 from daphne import daphne
 import numpy as np
@@ -25,11 +26,10 @@ def deterministic_eval(exp):
         return env[op](*map(deterministic_eval, args))
     elif type(exp) in [int, float, bool]:
         # We use torch for all numerical objects in our evaluator
-        return torch.Tensor([float(exp)]).squeeze()
+        return torch.tensor([float(exp)], requires_grad=True).squeeze()
     elif type(exp) is torch.Tensor:
         return exp
     else:
-        import pdb; pdb.set_trace()
         raise Exception("Expression type unknown.", exp)
 
 def topological_sort(nodes, edges):
@@ -156,7 +156,7 @@ def hw_2():
             sample = sample_from_joint(graph)[0]
             samples.append(sample)
 
-        print(f'\nExpectation of return values for program {i}:')
+        print("\nExpectation of return values for program {i}:")
         if type(samples[0]) is list:
             expectation = [None]*len(samples[0])
             for j in range(n):
@@ -232,9 +232,111 @@ def hw_3_gibbs():
         print("Posterior variance for program-{}: {}".format(i, var))
 
 
+def tensor_dict_add(x, r):
+    y = {}
+    for i, key in enumerate([*x.keys()]):
+        y[key] = x[key].detach() + r[i]
+        y[key].requires_grad = True
+    return y
+
+def H(X, R, M, obs, links):
+    return U(X, obs, links) + 0.5*torch.matmul(R, torch.matmul(M.inverse(), R))
+
+def U(X, obs, links):
+    logP = 0
+    for node in obs:
+        link_expr = plugin_parent_values(links[node][1], {**X, **obs})
+        dist_obj = deterministic_eval(link_expr)
+        logP += dist_obj.log_prob(obs[node])
+
+    return -logP
+
+def del_U(X, obs, links):
+    Ux = U(X, obs, links)
+    Ux.backward()
+    gradients = torch.zeros(len(X))
+    for i, key in enumerate([*X.keys()]):
+        gradients[i] = X[key].grad
+
+    return gradients
+
+def leapfrog(X0, R0, T, epsilon, obs, links):
+    X = {0:X0}
+    R = {0:R0}
+    R[1/2] = R[0] - 0.5*epsilon*del_U(X0, obs, links)
+    for t in range(1, T):
+        X[t] = tensor_dict_add(X[t-1], epsilon*R[t - 1/2])
+        R[t + 1/2] = R[t - 1/2] - epsilon*del_U(X[t], obs, links)
+    X[T] = tensor_dict_add(X[t-1], epsilon*R[T - 1/2])
+    R[T] = R[T - 1/2] - 0.5*epsilon*del_U(X[T], obs, links)
+
+    return X[T], R[T]
+
+def hmc(X, S, T, epsilon, M, obs, links):
+    traces = []
+    r_dist = torch.distributions.MultivariateNormal(torch.zeros(len(X)), M)
+    for s in tqdm(range(S)):
+        R = r_dist.sample()
+        X_, R_ = leapfrog(deepcopy(X), R, T, epsilon, obs, links)
+        u = torch.distributions.Uniform(0, 1).sample()
+        if u < torch.exp(-H(X_, R_, M, obs, links) + H(X, R, M, obs, links)):
+            X = X_
+        traces.append(X)
+
+    return traces
+
+def hw3_hmc():
+    for i in [1,2]:
+        graph = daphne(['graph', '-i', '../HW3/hw3-programs/{}.daphne'.format(i)])
+        procs, model, expr = graph[0], graph[1], graph[2]
+        nodes, edges, links, obs = model['V'], model['A'], model['P'], model['Y']
+        sorted_nodes = topological_sort(nodes, edges)
+        diff = list(sorted_nodes - obs.keys())
+        X = [node for node in sorted_nodes if node in diff]
+
+        samples = []
+        _, _, trace = sample_from_joint(graph)
+        X_dict = {}
+        for x in X:
+            X_dict[x] = trace[x]
+            X_dict[x].requires_grad = True
+        X = X_dict
+
+        M = torch.eye(len(X))
+        S = 10000
+        epsilon = 0.1
+        T = 10
+
+        X_traces = hmc(X, S, T, epsilon, M, obs, links)
+        
+        for x in X_traces:
+            final_trace = {**x, **obs}
+            final_expr = plugin_parent_values(expr, final_trace)
+            samples.append(deterministic_eval(final_expr))
+
+        samples = torch.stack(samples).float()
+        mean = samples.mean(dim=0)
+        var = samples.var(dim=0)
+
+        print("Posterior mean for program-{}: {}".format(i, mean))
+        print("Posterior variance for program-{}: {}\n".format(i, var))
+
 
 if __name__ == '__main__':
-    # hw_2()
-    hw_3_gibbs()
-
-    
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="Prob. Prog. Assignments", allow_abbrev=False
+    )
+    parser.add_argument(
+        "-s",
+        "--sampler",
+        type=str,
+        required=True,
+    )
+    (args, unknown_args) = parser.parse_known_args()
+    if args.sampler == 'hw2':
+        hw_2()
+    if args.sampler == 'hw3_gibbs':
+        hw_3_gibbs()
+    if args.sampler == 'hw3_hmc':
+        hw3_hmc()
