@@ -37,9 +37,11 @@ class Normal(dist.Normal):
         
 
 def push_addr(alpha, value):
-    return str(alpha) + str(value)
+    return alpha + value
 
 def vector(addr, *args):
+    if len(args) == 0:
+        return torch.tensor([])
     # sniff test: if what is inside isn't int,float,or tensor return normal list
     if type(args[0]) not in [int, float, torch.Tensor]:
         return [arg for arg in args]
@@ -55,6 +57,10 @@ def vector(addr, *args):
 def conj(addr, data, el):
     if len(el.shape) == 0: el = el.reshape(1)
     return torch.cat([data, el], dim=0)
+
+def cons(addr, data, el):
+    if len(el.shape) == 0: el = el.reshape(1)
+    return torch.cat([el, data], dim=0)
 
 def hashmap(addr, *args):
     result, i = {}, 0
@@ -103,10 +109,12 @@ env = {
            'last': lambda addr, data: data[-1],
            'vector': vector,
            'append': conj,
+           'conj': conj,
+           'cons': cons,
            'get': get,
            'hash-map': hashmap,
            'put': put,
-
+           'empty?': lambda addr, a: len(a) == 0
        }
 
 

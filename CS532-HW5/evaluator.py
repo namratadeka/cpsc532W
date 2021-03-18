@@ -33,11 +33,17 @@ def evaluate(exp, env=None, sigma={}): #TODO: add sigma, or something
         env = standard_env()
     #TODO:
     if isinstance(exp, str):
-        return env.get(exp)
+        if env.get(exp) is not None:
+            return env.get(exp)
+        return exp
     elif not isinstance(exp, list):
         return torch.tensor(exp).float()
     op, *args = exp
-    if op == 'fn':
+    if op == 'if':
+        (test, conseq, alt) = args
+        exp = (conseq if evaluate(test, env) else alt)
+        return evaluate(exp, env)
+    elif op == 'fn':
         params, body = args
         return Procedure(params, body, env)
     else:
@@ -67,17 +73,19 @@ def run_deterministic_tests():
         
         print('FOPPL Tests passed')
         
-    # for i in range(1,13):
+    for i in range(1,13):
 
-    #     exp = daphne(['desugar-hoppl', '-i', '../CS532-HW5/programs/tests/hoppl-deterministic/test_{}.daphne'.format(i)])
-    #     truth = load_truth('programs/tests/hoppl-deterministic/test_{}.truth'.format(i))
-    #     ret = evaluate(exp)
-    #     try:
-    #         assert(is_tol(ret, truth))
-    #     except:
-    #         raise AssertionError('return value {} is not equal to truth {} for exp {}'.format(ret,truth,exp))
+        exp = daphne(['desugar-hoppl', '-i', '../CS532-HW5/programs/tests/hoppl-deterministic/test_{}.daphne'.format(i)])
+        truth = load_truth('programs/tests/hoppl-deterministic/test_{}.truth'.format(i))
+        ret = evaluate(exp)
+        if isinstance(ret, Procedure):
+            ret = ret('start-addr')
+        try:
+            assert(is_tol(ret, truth))
+        except:
+            raise AssertionError('return value {} is not equal to truth {} for exp {}'.format(ret,truth,exp))
         
-    #     print('Test passed')
+        print('Test passed')
         
     print('All deterministic tests passed')
     
