@@ -34,12 +34,32 @@ class Normal(dist.Normal):
         self.scale = torch.nn.functional.softplus(self.optim_scale)
         
         return super().log_prob(x)
-        
+
+def uniform(alpha, a, b):
+    return torch.distributions.Uniform(a, b)
+
+def dirichlet(alpha, concentration):
+    return distributions.Dirichlet(concentration)
+
+def exponential(alpha, lamb):
+    return torch.distributions.Exponential(lamb)
+
+def discrete(alpha, vector):
+    return distributions.Categorical(vector)
+
+def bernoulli(alpha, p, obs=None):
+    return distributions.Bernoulli(p)
+
+def beta(alpha, concentration, rate, obs=None):
+    return torch.distributions.Beta(concentration, rate)
+
+def gamma(alpha, concentration, rate):
+    return distributions.Gamma(concentration, rate)
 
 def push_addr(alpha, value):
     return alpha + value
 
-def vector(addr, *args):
+def vector(alpha, *args):
     if len(args) == 0:
         return torch.tensor([])
     # sniff test: if what is inside isn't int,float,or tensor return normal list
@@ -54,15 +74,15 @@ def vector(addr, *args):
             return [arg for arg in args]
     raise Exception(f'Type of args {args} could not be recognized.')
 
-def conj(addr, data, el):
+def conj(alpha, data, el):
     if len(el.shape) == 0: el = el.reshape(1)
     return torch.cat([data, el], dim=0)
 
-def cons(addr, data, el):
+def cons(alpha, data, el):
     if len(el.shape) == 0: el = el.reshape(1)
     return torch.cat([el, data], dim=0)
 
-def hashmap(addr, *args):
+def hashmap(alpha, *args):
     result, i = {}, 0
     while i<len(args):
         key, value  = args[i], args[i+1]
@@ -72,14 +92,14 @@ def hashmap(addr, *args):
         i += 2
     return result
 
-def get(addr, struct, index):
+def get(alpha, struct, index):
     if type(index) is torch.Tensor:
         index = index.item()
     if type(struct) in [torch.Tensor, list, tuple]:
         index = int(index)
     return struct[index]
 
-def put(addr, struct, index, value):
+def put(alpha, struct, index, value):
     if type(index) is torch.Tensor:
         index = int(index.item())
     if type(struct) in [torch.Tensor, list, tuple]:
@@ -88,25 +108,35 @@ def put(addr, struct, index, value):
     result[index] = value
     return result
 
-eq = lambda addr, a, b: a==b
+eq = lambda alpha, a, b: a==b
 
 env = {
            'normal' : Normal,
+           'beta': beta,
+           'gamma': gamma,
+           'dirichlet': dirichlet,
+           'uniform': uniform,
+           'uniform-continuous': uniform,
+           'exponential': exponential,
+           'discrete': discrete,
+           'flip': bernoulli,
+           'bernoulli': bernoulli,
+
            'push-address' : push_addr,
-           '+': lambda addr, a, b: torch.add(a,b),
-           '-': lambda addr, a, b: torch.subtract(a,b),
-           '*': lambda addr, a, b: torch.multiply(a,b),
-           '/': lambda addr, a, b: torch.divide(a,b),
-           '>': lambda addr, a, b: a > b,
-           '<': lambda addr, a, b: a < b,
+           '+': lambda alpha, a, b: torch.add(a,b),
+           '-': lambda alpha, a, b: torch.subtract(a,b),
+           '*': lambda alpha, a, b: torch.multiply(a,b),
+           '/': lambda alpha, a, b: torch.divide(a,b),
+           '>': lambda alpha, a, b: a > b,
+           '<': lambda alpha, a, b: a < b,
            '=': eq,
            '==': eq,
-           'or': lambda addr, a, b: a or b,
-           'and': lambda addr, a, b: a and b,
-           'sqrt': lambda addr, x: torch.sqrt(torch.tensor(x)),
-           'first': lambda addr, data: data[0],
-           'rest': lambda addr, data: data[1:],
-           'last': lambda addr, data: data[-1],
+           'or': lambda alpha, a, b: a or b,
+           'and': lambda alpha, a, b: a and b,
+           'sqrt': lambda alpha, x: torch.sqrt(torch.tensor(x)),
+           'first': lambda alpha, data: data[0],
+           'rest': lambda alpha, data: data[1:],
+           'last': lambda alpha, data: data[-1],
            'vector': vector,
            'append': conj,
            'conj': conj,
@@ -114,7 +144,7 @@ env = {
            'get': get,
            'hash-map': hashmap,
            'put': put,
-           'empty?': lambda addr, a: len(a) == 0
+           'empty?': lambda alpha, a: len(a) == 0
        }
 
 

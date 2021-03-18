@@ -27,7 +27,6 @@ def standard_env():
     return env
 
 
-
 def evaluate(exp, env=None, sigma={}): #TODO: add sigma, or something
     if env is None:
         env = standard_env()
@@ -43,6 +42,12 @@ def evaluate(exp, env=None, sigma={}): #TODO: add sigma, or something
         (test, conseq, alt) = args
         exp = (conseq if evaluate(test, env) else alt)
         return evaluate(exp, env)
+    elif op == 'sample':
+        evaluate(args[0], env)
+        dist = evaluate(args[1], env)
+        return dist.sample()
+    elif op == 'observe':
+        import pdb; pdb.set_trace()
     elif op == 'fn':
         params, body = args
         return Procedure(params, body, env)
@@ -56,7 +61,7 @@ def evaluate(exp, env=None, sigma={}): #TODO: add sigma, or something
 
 def get_stream(exp):
     while True:
-        yield evaluate(exp)
+        yield evaluate(exp)('start-addr')
 
 
 def run_deterministic_tests():
@@ -99,7 +104,6 @@ def run_probabilistic_tests():
     for i in range(1,7):
         exp = daphne(['desugar-hoppl', '-i', '../CS532-HW5/programs/tests/probabilistic/test_{}.daphne'.format(i)])
         truth = load_truth('programs/tests/probabilistic/test_{}.truth'.format(i))
-        
         stream = get_stream(exp)
         
         p_val = run_prob_test(stream, truth, num_samples)
@@ -114,7 +118,7 @@ def run_probabilistic_tests():
 if __name__ == '__main__':
     
     run_deterministic_tests()
-    # run_probabilistic_tests()
+    run_probabilistic_tests()
     
 
     # for i in range(1,4):
