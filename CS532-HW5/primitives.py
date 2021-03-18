@@ -36,25 +36,25 @@ class Normal(dist.Normal):
         return super().log_prob(x)
 
 def uniform(alpha, a, b):
-    return torch.distributions.Uniform(a, b)
+    return dist.Uniform(a, b)
 
 def dirichlet(alpha, concentration):
-    return distributions.Dirichlet(concentration)
+    return dist.Dirichlet(concentration)
 
 def exponential(alpha, lamb):
-    return torch.distributions.Exponential(lamb)
+    return dist.Exponential(lamb)
 
 def discrete(alpha, vector):
-    return distributions.Categorical(vector)
+    return dist.Categorical(vector)
 
 def bernoulli(alpha, p, obs=None):
-    return distributions.Bernoulli(p)
+    return dist.Bernoulli(p)
 
 def beta(alpha, concentration, rate, obs=None):
-    return torch.distributions.Beta(concentration, rate)
+    return dist.Beta(concentration, rate)
 
 def gamma(alpha, concentration, rate):
-    return distributions.Gamma(concentration, rate)
+    return dist.Gamma(concentration, rate)
 
 def push_addr(alpha, value):
     return alpha + value
@@ -137,6 +137,7 @@ env = {
            'first': lambda alpha, data: data[0],
            'rest': lambda alpha, data: data[1:],
            'last': lambda alpha, data: data[-1],
+           'peek': lambda alpha, data: data[-1],
            'vector': vector,
            'append': conj,
            'conj': conj,
@@ -144,7 +145,9 @@ env = {
            'get': get,
            'hash-map': hashmap,
            'put': put,
-           'empty?': lambda alpha, a: len(a) == 0
+           'empty?': lambda alpha, a: len(a) == 0,
+           'exp': lambda alpha, a: torch.exp(a),
+           'log': lambda alpha, a: torch.log(a)
        }
 
 

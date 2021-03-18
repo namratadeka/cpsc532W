@@ -1,8 +1,10 @@
 import torch
-from primitives import env as penv
-from daphne import daphne
-from tests import is_tol, run_prob_test,load_truth
+from tqdm import tqdm
 from pyrsistent import pmap,plist
+
+from daphne import daphne
+from primitives import env as penv
+from tests import is_tol, run_prob_test,load_truth
 
 
 class Env(dict):
@@ -27,10 +29,10 @@ def standard_env():
     return env
 
 
-def evaluate(exp, env=None, sigma={}): #TODO: add sigma, or something
+def evaluate(exp, env=None): #TODO: add sigma, or something
     if env is None:
         env = standard_env()
-    #TODO:
+
     if isinstance(exp, str):
         if env.get(exp) is not None:
             return env.get(exp)
@@ -47,7 +49,10 @@ def evaluate(exp, env=None, sigma={}): #TODO: add sigma, or something
         dist = evaluate(args[1], env)
         return dist.sample()
     elif op == 'observe':
-        import pdb; pdb.set_trace()
+        evaluate(args[0], env)
+        dist = evaluate(args[1], env)
+        obs = evaluate(args[2], env)
+        return obs
     elif op == 'fn':
         params, body = args
         return Procedure(params, body, env)
@@ -117,12 +122,26 @@ def run_probabilistic_tests():
 
 if __name__ == '__main__':
     
-    run_deterministic_tests()
-    run_probabilistic_tests()
+    # run_deterministic_tests()
+    # run_probabilistic_tests()
     
+    import sys
+    sys.setrecursionlimit(10000)
 
-    # for i in range(1,4):
-    #     print(i)
-    #     exp = daphne(['desugar-hoppl', '-i', '../CS532-HW5/programs/{}.daphne'.format(i)])
-    #     print('\n\n\nSample of prior of program {}:'.format(i))
-    #     print(evaluate(exp))        
+    from plots import histogram
+
+    for i in range(1,4):
+        print(i)
+        exp = daphne(['desugar-hoppl', '-i', '../CS532-HW5/programs/{}.daphne'.format(i)])
+        print('\n\n\nSampling from prior of program {}:'.format(i))
+        N, samples = 1e4, []
+        stream = get_stream(exp)
+        for j in tqdm(range(int(N))):
+            samples.append(next(stream))
+
+        samples = torch.stack(samples).float()
+        mean = samples.mean(dim=0)
+        variance = samples.var(dim=0)
+        print("Mean = {}\nVariance = {}".format(i, mean, variance))
+
+        histogram(samples, name="Program {}".format(i+1))
