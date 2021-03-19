@@ -122,13 +122,13 @@ def run_probabilistic_tests():
 
 if __name__ == '__main__':
     
-    # run_deterministic_tests()
-    # run_probabilistic_tests()
+    run_deterministic_tests()
+    run_probabilistic_tests()
     
     import sys
     sys.setrecursionlimit(10000)
 
-    from plots import histogram
+    from plots import histogram, plot_heatmap
 
     for i in range(1,4):
         print(i)
@@ -140,8 +140,12 @@ if __name__ == '__main__':
             samples.append(next(stream))
 
         samples = torch.stack(samples).float()
+        samples = samples.reshape(int(N),-1)
         mean = samples.mean(dim=0)
         variance = samples.var(dim=0)
-        print("Mean = {}\nVariance = {}".format(i, mean, variance))
+        print("Mean = {}\nVariance = {}".format(mean, variance))
 
-        histogram(samples, name="Program {}".format(i+1))
+        if i==3:
+            plot_heatmap(mean, variance, name="Program {}".format(i+1))
+        else:
+            histogram(samples, name="Program {}".format(i+1))
