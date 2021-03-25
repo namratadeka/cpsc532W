@@ -23,6 +23,16 @@ def run_until_observe_or_end(res):
 
 def resample_particles(particles, log_weights):
     #TODO
+    new_particles = []
+
+    weights = torch.exp(torch.FloatTensor(log_weights))
+    normalized_weights = weights / weights.sum()
+    logZ = torch.log(normalized_weights.mean())
+
+    particle_indices = torch.multinomial(normalized_weights, len(particles), True)
+    for idx in particle_indices:
+        new_particles.append(particles[idx])
+
     return logZ, new_particles
 
 
@@ -47,6 +57,7 @@ def SMC(n_particles, exp):
     done = False
     smc_cnter = 0
     while not done:
+        current_addr = ''
         print('In SMC step {}, Zs: '.format(smc_cnter), logZs)
         for i in range(n_particles): #Even though this can be parallelized, we run it serially
             res = run_until_observe_or_end(particles[i])
@@ -59,12 +70,22 @@ def SMC(n_particles, exp):
                     if not done:
                         raise RuntimeError('Failed SMC, finished one calculation before the other')
             else:
-                pass #TODO: check particle addresses, and get weights and continuations
+                #TODO: check particle addresses, and get weights and continuations
+                particles[i] = res
+                if i == 0:
+                    current_addr = res[2]['addr']
+                else:
+                    addr = res[2]['addr']
+                    if not current_addr == addr:
+                        raise RuntimeError('Failed SMC, address mismatch. Expected {} but got {}.'.format(current_addr, addr))
+                logW = res[2]['logW']
+                weights[i] += logW
 
         if not done:
             #resample and keep track of logZs
             logZn, particles = resample_particles(particles, weights)
             logZs.append(logZn)
+            weights = [0.] * len(weights) # reset weights
         smc_cnter += 1
     logZ = sum(logZs)
     return logZ, particles
@@ -75,7 +96,7 @@ if __name__ == '__main__':
     for i in range(1,5):
         with open('programs/{}.json'.format(i),'r') as f:
             exp = json.load(f)
-        n_particles = 10 #TODO 
+        n_particles = [int(10**x) for x in range(6)]
         logZ, particles = SMC(n_particles, exp)
 
         print('logZ: ', logZ)

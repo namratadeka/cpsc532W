@@ -73,7 +73,8 @@ def evaluate(exp, env=None):
             d = evaluate(args[1], env=env)
             s = d.sample()
             k = evaluate(args[2], env=env)
-            sigma = {'type' : 'sample'
+            sigma = {'type' : 'sample',
+                     'addr' : alpha
                      #TODO: put any other stuff you need here
                      }
             return k, [s], sigma
@@ -84,7 +85,8 @@ def evaluate(exp, env=None):
             k = evaluate(args[3], env=env)
             sigma = {'type' : 'observe',
                      #TODO: put any other stuff you need here
-                     'logW' : d.log_prob(c)
+                     'logW' : d.log_prob(c),
+                     'addr': alpha
                      }
             return k, [c], sigma
         elif op == 'if':
