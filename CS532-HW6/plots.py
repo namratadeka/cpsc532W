@@ -23,13 +23,14 @@ def plot_heatmap(mean, variance, name=None):
 	mean = mean.reshape(-1,1).detach().cpu().numpy()
 	variance = variance.reshape(-1,1).detach().cpu().numpy()
 
-	plt.figure(figsize=(20, 10))
+	fig = plt.figure(figsize=(20, 10))
 	plt.subplot(1, 2, 1)
 	heatmap(mean, annot=True)
 	plt.title("Mean heatmap for each output dimension of {}.".format(name))
 
 	plt.subplot(1, 2, 2)
 	heatmap(variance, annot=True)
-	plt.title("Variance heatmap for each output dimension of {}.".format(name))
+	figname = "Variance heatmap for each output dimension of {}.".format(name)
+	plt.title(figname)
 	
-	plt.show()
+	fig.savefig('./figures/{}.png'.format(figname))

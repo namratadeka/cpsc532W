@@ -1,12 +1,11 @@
 from evaluator import evaluate
-from plots import histogram
+from plots import histogram, plot_heatmap
 import torch
 import numpy as np
 import json
 import sys
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from seaborn import heatmap
 
 
 
@@ -97,7 +96,7 @@ def SMC(n_particles, exp):
 
 if __name__ == '__main__':
 
-    for i in range(4, 5):
+    for i in range(3, 4):
         with open('programs/{}.json'.format(i),'r') as f:
             exp = json.load(f)
         n_particles = [int(10**x) for x in range(0,6)]
@@ -118,6 +117,8 @@ if __name__ == '__main__':
             evidences.append(evidence)
 
             histogram(samples=samples, name="Program {}, Particles = {}".format(i, n_particle))
+            if i == 3:
+                plot_heatmap(mean, variance, name="Program {}, Particles = {}".format(i, n_particle))
 
         means = torch.stack(means).detach().cpu().numpy()
         variances = torch.stack(variances).detach().cpu().numpy()
