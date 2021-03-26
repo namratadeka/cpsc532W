@@ -1,8 +1,12 @@
 from evaluator import evaluate
+from plots import histogram
 import torch
 import numpy as np
 import json
 import sys
+from tqdm import tqdm
+import matplotlib.pyplot as plt
+from seaborn import heatmap
 
 
 
@@ -26,8 +30,8 @@ def resample_particles(particles, log_weights):
     new_particles = []
 
     weights = torch.exp(torch.FloatTensor(log_weights))
-    normalized_weights = weights / weights.sum()
-    logZ = torch.log(normalized_weights.mean())
+    normalized_weights = weights + 1e-5 / (weights + 1e-5).sum()
+    logZ = torch.log(weights.mean())
 
     particle_indices = torch.multinomial(normalized_weights, len(particles), True)
     for idx in particle_indices:
@@ -59,7 +63,7 @@ def SMC(n_particles, exp):
     while not done:
         current_addr = ''
         print('In SMC step {}, Zs: '.format(smc_cnter), logZs)
-        for i in range(n_particles): #Even though this can be parallelized, we run it serially
+        for i in tqdm(range(n_particles)): #Even though this can be parallelized, we run it serially
             res = run_until_observe_or_end(particles[i])
             if 'done' in res[2]: #this checks if the calculation is done
                 particles[i] = res[0]
@@ -93,13 +97,69 @@ def SMC(n_particles, exp):
 
 if __name__ == '__main__':
 
-    for i in range(1,5):
+    for i in range(4, 5):
         with open('programs/{}.json'.format(i),'r') as f:
             exp = json.load(f)
-        n_particles = [int(10**x) for x in range(6)]
-        logZ, particles = SMC(n_particles, exp)
+        n_particles = [int(10**x) for x in range(0,6)]
 
-        print('logZ: ', logZ)
+        means, variances = [], []
+        evidences = []
 
-        values = torch.stack(particles)
-        #TODO: some presentation of the results
+        for n_particle in n_particles:
+
+            logZ, particles = SMC(n_particle, exp)
+            samples = torch.stack(particles).reshape(n_particle, -1).float()
+            mean = samples.mean(dim=0)
+            variance = samples.var(dim=0)
+            evidence = torch.exp(torch.tensor(logZ).float())
+
+            means.append(mean)
+            variances.append(variance)
+            evidences.append(evidence)
+
+            histogram(samples=samples, name="Program {}, Particles = {}".format(i, n_particle))
+
+        means = torch.stack(means).detach().cpu().numpy()
+        variances = torch.stack(variances).detach().cpu().numpy()
+        evidences = torch.stack(evidences).detach().cpu().numpy()
+
+        n_dims = means.shape[1]
+        for d in range(n_dims):
+            fig = plt.figure()
+            plt.plot(n_particles, means[:, d], 'o-', label='expectation')
+            for x, y in zip(n_particles, means[:, d]):
+                label = "{}".format(y)
+                plt.annotate(label, 
+                             (x, y),
+                             textcoords="offset points",
+                             xytext=(0,10),
+                             ha="center"
+                    )
+
+            plt.plot(n_particles, variances[:, d], 'o-', label='variance')
+            plt.legend()
+            figname = "Posterior expectations and variances for Program {}, dimension {}.".format(i, d)
+            plt.title(figname)
+            fig.savefig('./figures/{}.png'.format(figname))
+
+        fig = plt.figure()
+        plt.plot(n_particles, evidences, 'o-', label='marginal probability/evidence')
+        for x, y in zip(n_particles, evidences):
+            label = "{}".format(y)
+            plt.annotate(label, 
+                         (x, y),
+                         textcoords="offset points",
+                         xytext=(0,10),
+                         ha="center"
+                )
+        plt.legend(loc='lower right')
+        figname = "Evidence vs n_particles for Program {}".format(i)
+        plt.title(figname)
+        fig.savefig('./figures/{}.png'.format(figname))
+
+        # import pdb; pdb.set_trace()
+
+        # print('logZ: ', logZ)
+
+        # values = torch.stack(particles)
+        # #TODO: some presentation of the results
