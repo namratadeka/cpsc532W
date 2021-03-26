@@ -96,7 +96,7 @@ def SMC(n_particles, exp):
 
 if __name__ == '__main__':
 
-    for i in range(3, 4):
+    for i in range(1, 2):
         with open('programs/{}.json'.format(i),'r') as f:
             exp = json.load(f)
         n_particles = [int(10**x) for x in range(0,6)]
@@ -137,9 +137,9 @@ if __name__ == '__main__':
                              ha="center"
                     )
 
-            plt.plot(n_particles, variances[:, d], 'o-', label='variance')
+            # plt.plot(n_particles, variances[:, d], 'o-', label='variance')
             plt.legend()
-            figname = "Posterior expectations and variances for Program {}, dimension {}.".format(i, d)
+            figname = "Posterior expectations for Program {}, dimension {}.".format(i, d)
             plt.title(figname)
             fig.savefig('./figures/{}.png'.format(figname))
 
